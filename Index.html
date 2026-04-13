@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WalkerAccessories254 | Official Store</title>
+    <style>
+        :root { --primary: #0d47a1; --accent: #c5a059; --bg: #f4f7f9; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { margin: 0; background: var(--bg); color: #333; }
+        header { background: var(--primary); color: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .logo { font-size: 24px; font-weight: bold; letter-spacing: 1px; cursor: pointer; }
+        .logo span { color: var(--accent); }
+        nav a { color: white; margin-left: 20px; text-decoration: none; font-size: 14px; cursor: pointer; font-weight: 500; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        .section { display: none; min-height: 80vh; padding-top: 20px; }
+        .active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; padding-bottom: 20px; }
+        .card img { width: 100%; height: 260px; object-fit: cover; cursor: pointer; }
+        .card h3 { font-size: 18px; margin: 15px 10px 5px; color: var(--primary); }
+        .card .price { font-weight: bold; font-size: 17px; color: #444; margin-bottom: 15px; }
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 85%; }
+        .btn:hover { background: #083b8d; border-bottom: 3px solid var(--accent); }
+        .admin-table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        .admin-table th, .admin-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .admin-table img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-box { background: white; padding: 30px; width: 90%; max-width: 420px; border-radius: 15px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo" onclick="navigateTo('shop')">Walker<span>Accessories254</span></div>
+    <nav>
+        <a onclick="navigateTo('shop')">Shop</a>
+        <a onclick="navigateTo('adminLogin')">Admin</a>
+    </nav>
+</header>
+
+<div class="container">
+    <div id="shop" class="section active">
+        <h2 style="text-align:center; color: var(--primary);">OFFICIAL PUBLIC CATALOG</h2>
+        <div id="productList" class="grid"></div>
+    </div>
+
+    <div id="adminLogin" class="section">
+        <div style="max-width: 350px; margin: 80px auto; background: white; padding: 30px; border-radius: 15px; text-align:center;">
+            <h3>Admin Portal</h3>
+            <input type="text" id="user" placeholder="Username">
+            <input type="password" id="pass" placeholder="Password">
+            <button class="btn" style="width:100%" onclick="handleLogin()">Login</button>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="section">
+        <h2>Cloud Inventory</h2>
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px;">
+            <input id="pname" placeholder="Item Name">
+            <input id="pprice" placeholder="Price (KES)">
+            <input type="file" id="pimg" accept="image/*">
+            <button class="btn" style="width:auto" id="uploadBtn" onclick="handleUpload()">Upload to Cloud</button>
+        </div>
+        <table class="admin-table">
+            <thead><tr><th>Img</th><th>Name</th><th>Price</th><th>Action</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="locationModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Delivery Info</h3>
+        <select id="county">
+            <option value="">-- Select County --</option>
+            <option value="Nairobi">Nairobi</option><option value="Mombasa">Mombasa</option>
+            <option value="Siaya">Siaya</option><option value="Busia">Busia</option>
+            </select>
+        <input id="subCounty" placeholder="Sub-County">
+        <input id="ward" placeholder="Ward/Street">
+        <button class="btn" style="width:100%" onclick="submitWhatsApp()">Order Now</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; color:gray; cursor:pointer;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURE YOUR FIREBASE HERE ---
+    const FIREBASE_URL = "PASTE_YOUR_FIREBASE_URL_HERE"; // Example: https://walker-default-rtdb.firebaseio.com/
+    const MY_PHONE = "254701916557";
+    
+    let activeN = "", activeP = "";
+
+    function navigateTo(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'shop') fetchFromCloud();
+        if(id === 'adminPanel') fetchAdminCloud();
+    }
+
+    function handleLogin() {
+        if(document.getElementById('user').value === "Odhiambowalker" && document.getElementById('pass').value === "Jos20eph06") navigateTo('adminPanel');
+        else alert("Access Denied.");
+    }
+
+    // FIREBASE: Save Data
+    async function handleUpload() {
+        const n = document.getElementById('pname').value, p = document.getElementById('pprice').value, f = document.getElementById('pimg').files[0];
+        if(!n || !p || !f) return alert("Fill all fields.");
+        
+        document.getElementById('uploadBtn').innerText = "Uploading...";
+        const r = new FileReader();
+        r.onload = async function(e) {
+            const product = { n, p, i: e.target.result };
+            await fetch(`${FIREBASE_URL}/products.json`, {
+                method: 'POST',
+                body: JSON.stringify(product)
+            });
+            document.getElementById('uploadBtn').innerText = "Upload to Cloud";
+            fetchAdminCloud();
+            alert("Live on Website!");
+        };
+        r.readAsDataURL(f);
+    }
+
+    // FIREBASE: Load Data for Shop
+    async function fetchFromCloud() {
+        const response = await fetch(`${FIREBASE_URL}/products.json`);
+        const data = await response.json();
+        const list = document.getElementById('productList');
+        list.innerHTML = "";
+        if(!data) { list.innerHTML = "No products found."; return; }
+        
+        Object.keys(data).forEach(key => {
+            const x = data[key];
+            list.innerHTML += `
+                <div class="card">
+                    <img src="${x.i}" onclick="window.open('${x.i}')">
+                    <h3>${x.n}</h3>
+                    <div class="price">KES ${x.p}</div>
+                    <button class="btn" onclick="openOrder('${x.n}','${x.p}')">Order Now</button>
+                </div>`;
+        });
+    }
+
+    // FIREBASE: Load Data for Admin
+    async function fetchAdminCloud() {
+        const response = await fetch(`${FIREBASE_URL}/products.json`);
+        const data = await response.json();
+        const body = document.getElementById('adminTableBody');
+        body.innerHTML = "";
+        if(!data) return;
+        
+        Object.keys(data).forEach(key => {
+            const x = data[key];
+            body.innerHTML += `
+                <tr>
+                    <td><img src="${x.i}"></td>
+                    <td>${x.n}</td>
+                    <td>${x.p}</td>
+                    <td><button onclick="delCloud('${key}')" style="color:red; cursor:pointer;">Delete</button></td>
+                </tr>`;
+        });
+    }
+
+    // FIREBASE: Delete Data
+    async function delCloud(key) {
+        if(confirm("Remove from website?")) {
+            await fetch(`${FIREBASE_URL}/products/${key}.json`, { method: 'DELETE' });
+            fetchAdminCloud();
+        }
+    }
+
+    function openOrder(n, p) { activeN = n; activeP = p; document.getElementById('locationModal').style.display='flex'; }
+    function closeModal() { document.getElementById('locationModal').style.display='none'; }
+
+    function submitWhatsApp() {
+        const c = document.getElementById('county').value, sc = document.getElementById('subCounty').value, w = document.getElementById('ward').value;
+        const msg = `*NEW ORDER*\nItem: ${activeN}\nPrice: KES ${activeP}\n\n*DELIVERY*\nCounty: ${c}\nSub: ${sc}\nWard: ${w}`;
+        window.open(`https://wa.me/${MY_PHONE}?text=${encodeURIComponent(msg)}`);
+        closeModal();
+    }
+
+    window.onload = fetchFromCloud;
+</script>
+</body>
+  </html>
